@@ -7,6 +7,7 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 
@@ -56,8 +57,10 @@ public class Temperature {
 
         @Override
         protected void cleanup(Context context) throws IOException, InterruptedException {
-            context.write(new Text("max"), new DoubleWritable(max));
-            context.write(new Text("min"), new DoubleWritable(min));
+            FileSplit fileSplit = (FileSplit)context.getInputSplit();
+            String filename = fileSplit.getPath().getName();
+            context.write(new Text(filename + "max"), new DoubleWritable(max));
+            context.write(new Text(filename + "min"), new DoubleWritable(min));
         }
 
     }
@@ -69,15 +72,11 @@ public class Temperature {
 
         @Override
         protected void reduce(Text key, Iterable<DoubleWritable> values, Context context) throws IOException, InterruptedException {
-            if (key.toString().equals("min")) {
-                for (DoubleWritable value : values)
-                    min = Math.min(value.get(), min);
-                context.write(new Text("min"), new DoubleWritable(min));
-            } else if (key.toString().equals("max")) {
-                for (DoubleWritable value : values)
-                    max = Math.max(value.get(), max);
-                context.write(new Text("max"), new DoubleWritable(max));
+            for(DoubleWritable value: values) {
+                context.write(key, value);
             }
+
+
         }
     }
 
